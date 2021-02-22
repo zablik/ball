@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ball</title>
+    <style>
+        body {
+            background-color: antiquewhite
+        }
+        #field {
+            background-color: darkblue;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+        }
+        #ball {
+            border-radius: 50%;
+            background-color: red;
+            position: absolute;
+        }
+    </style>
+</head>
+<body>
+<div id="app" style="background-color: antiquewhite">
+    <div id="field">
+        <div id="ball"></div>
+    </div>
+
+    <button id="start">Start</button>
+    <button id="reset">Reset</button>
+    <br>
+    <br>
+
+    <label for="x-velocity">X Velocity</label>
+    <input type="number" id="x-velocity" value="5"/>
+<br>
+    <label for="y-velocity">Y Velocity</label>
+    <input type="number" id="y-velocity" value="3" />
+<br>
+    <label for="ball-radius">Ball radius</label>
+    <input type="number" id="ball-radius" value="3" />
+
+</div>
+<script>
+    let ball = {
+        el: document.getElementById('ball'),
+        radius: null,
+        position: {
+            x: null,
+            y: null,
+        },
+        setPosition(x, y) {
+            this.position.x = x;
+            this.position.y = y;
+            this.move();
+        },
+        velocity: {
+            x: null,
+            y: null,
+        },
+        setVelocity(x, y) {
+            this.velocity.x = x;
+            this.velocity.y = y;
+        },
+        invertVelocity(dimension) {
+            this.velocity[dimension] *= -1;
+        },
+        makeStep() {
+            let time = 1;
+            let newX = this.position.x + this.velocity.x * time;
+            let newY = this.position.y + this.velocity.y * time;
+
+            console.log('step: ' + newX + ' ' + newY );
+            this.setPosition(newX, newY);
+            this.move()
+        },
+        move() {
+            this.el.style.left = this.position.x + 'px';
+            this.el.style.top = this.position.y + 'px';
+        },
+        getEdges() {
+            return {
+                left: this.position.x,
+                top: this.position.y,
+                right: this.position.x + this.radius * 2,
+                bottom: this.position.y + this.radius * 2,
+            }
+        }
+    }
+
+    let field = {
+        el: document.getElementById('field'),
+        ball,
+        boarders: {
+            x:  {
+                min: 0,
+                max: null
+            },
+            y: {
+                min: 0,
+                max: null
+            },
+        },
+
+        rebound(dimension) {
+            this.ball.invertVelocity(dimension)
+        },
+        checkRebound() {
+            let edges = this.ball.getEdges();
+
+            if (edges.right > this.boarders.x.max || edges.left < this.boarders.x.min) {
+                this.rebound('x');
+            }
+
+            if (edges.bottom > this.boarders.y.max || edges.top < this.boarders.y.min) {
+                this.rebound('y');
+            }
+        }
+    };
+
+    let playground = {
+        initConfig: null,
+        field,
+        elStartBtn: document.getElementById('start'),
+        elResetBtn: document.getElementById('reset'),
+        elXVelocity: document.getElementById('x-velocity'),
+        elYVelocity: document.getElementById('y-velocity'),
+        elBallRadius: document.getElementById('ball-radius'),
+        timer: null,
+
+        init(config) {
+            let self = this;
+
+            this.field.boarders.x.max = config.fieldWidth;
+            this.field.boarders.y.max = config.fieldHeight;
+            this.field.el.style.width = this.field.boarders.x.max + 'px';
+            this.field.el.style.height = this.field.boarders.y.max + 'px';
+            this.field.el.style['margin-left'] = (this.field.boarders.x.max / -2)  + 'px';
+            this.field.el.style['margin-top'] = (this.field.boarders.y.max / -2) + 'px';
+
+            this.elStartBtn.addEventListener('click', function () {
+                self.start();
+                self.elStartBtn.setAttribute('disabled', 'disabled');
+            })
+
+            this.elResetBtn.addEventListener('click', function () {
+                self.reset();
+                self.elStartBtn.removeAttribute('disabled');
+            })
+
+            this.build(config);
+        },
+        build(config) {
+            if (config.ballRadius * 2 > this.field.boarders.x.max || config.ballRadius * 2 > this.field.boarders.y.max) {
+                alert('Ты тупой? так же не получится!');
+                return;
+            }
+
+            this.field.ball.radius = config.ballRadius;
+
+            this.field.ball.el.style.width = (2 * this.field.ball.radius) + 'px';
+            this.field.ball.el.style.height = (2 * this.field.ball.radius) + 'px';
+
+            this.elXVelocity.value = config.xVelocity;
+            this.elYVelocity.value = config.yVelocity;
+            this.elBallRadius.value = config.ballRadius;
+
+            this.field.ball.setVelocity(config.xVelocity, config.yVelocity);
+            this.field.ball.setPosition(this.field.boarders.x.min, this.field.boarders.y.min);
+        },
+        reset() {
+            clearInterval(this.timer);
+            this.build({
+                ballRadius: this.elBallRadius.value,
+                xVelocity: this.elXVelocity.value,
+                yVelocity: this.elYVelocity.value,
+            })
+        },
+        start() {
+            clearInterval(this.timer);
+
+            this.timer = setInterval(() => {
+                this.field.checkRebound();
+                this.field.ball.makeStep();
+            }, 20);
+        },
+    }
+
+    playground.init({
+        ballRadius: 100,
+        fieldWidth: 1000,
+        fieldHeight: 800,
+        xVelocity: 15,
+        yVelocity: 5,
+    });
+
+</script>
+</body>
+</html>
